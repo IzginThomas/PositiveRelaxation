@@ -1,7 +1,7 @@
 # A Positivity-Preserving Relaxation Algorithm
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17361026.svg)](https://zenodo.org/records/17988179)
+[![DOI](https://zenodo.org/badge/DOI/TODO.svg)](https://zenodo.org/records/TODO)
 
 This repository contains information and code to reproduce the results presented
 in the article
@@ -10,10 +10,10 @@ in the article
       title={A Positivity-Preserving Relaxation Algorithm}, 
       author={Thomas Izgin and Hendrik Ranocha and Chi-Wang Shu},
       year={2026},
-      eprint={},
+      eprint={TODO},
       archivePrefix={arXiv},
       primaryClass={math.NA},
-      url={https://arxiv.org/abs/}, 
+      url={https://arxiv.org/abs/TODO}, 
 }
 ```
 
@@ -26,7 +26,7 @@ use the implementations provided here, please **also** cite this repository as
   author={Izgin, Thomas and Ranocha, Hendrik and Shu, Chi-Wang},
   year={2026},
   howpublished={\url{https://github.com/IzginThomas/PositiveRelaxation}},
-  doi={}
+  doi={TODO}
 }
 ```
 
