@@ -1,0 +1,15 @@
+defaultMarkers = {'d','o','*','x','+','v','-^','-s','->','-<'};
+smoothMarkers = {'-','-','-','-','-','-','-','-s','->','-<'};
+errMarkers = {'-d','-o','-*','-x','-+','-v','-^','-s','->','-<'};
+% Markersref = {'--d','--o','--*','--x','--+','--v','--^','--s','-->','--<'};
+Markersref = {'--','--','--','--','--','--','--','--s','-->','--<'};
+%Markersref = {'--d','--o','--*','--x','--+','--v','--^','--s','-->','--<'};
+Markers= smoothMarkers;
+Markeropt = {'Markersize',1};
+default = 1;
+Markerint = default;
+plotopt = {'LineWidth',4};
+txtopt = {'FontSize',24};
+set(groot,'defaultLegendInterpreter','latex');
+set(groot,'defaulttextinterpreter','latex');
+set(groot,'defaultLegendInterpreter','latex');

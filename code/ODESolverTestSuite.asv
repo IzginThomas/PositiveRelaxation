@@ -1,0 +1,342 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% ODE Solver Test Suite                                               %%%
+%%%                                                                     %%%
+%%% Author: Stefan Kopecz (kopecz@mathematik.uni-kassel.de)             %%%
+%%% Date: 05/07/2019                                                    %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+clc, clear, close all
+
+task = 'plot';
+test = 'lotka_volterra'; % choose lotka_volterra, strat, lin_ad, IsothEuler
+
+%%% Specify Input here
+relaxation_flag = 0;
+relax_meth = 'newton'; % newton, regula, bisection, secant % For Dissipative problems always use 'newton'
+input = {...'adap',{'opt',{1e-3, 1e-3},'PID'},... %turn on adaptivity
+    'dense', false, 'relaxation', {relaxation_flag, relax_meth}}; % leave this
+
+
+% Read Test Description, enlarge input
+run(['test_' test])
+check_vars();
+
+%%% SELECT SOLVERS HERE
+
+% solvers = {{'MPSSPRK22', [input(:)', 'parameter', [1/2,1]]}};
+% solvers = {{'MPRK43I', [input(:)', 'parameter', [1/2, 3/4]]}};
+solvers = {{'MP_RK22', [input(:)', 'parameter', 1]}};
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% MAIN PROGRAM %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0; %check if octave
+
+%%% Plot options
+get_plotopt();
+
+switch task
+    %%% Plot approximations %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    case {'plot','plotsave', 'data'}
+        if ~strcmp(task,'data')
+            %%% Reference solution
+            tint = [tstart tend];
+            comp_ref();
+            %%% Plotting ref
+
+
+            if ~pde_plot
+                get_lgnd();
+                figure
+                if  strcmp(test,'strat')
+                    plot_strat_ref();
+                else
+                    for j=1:size(yex,2)
+                        hdl1 = plot(tex,yex(:,j),Markers{j},plotopt{:},'MarkerIndices',1:2*Markerint:size(yex,1), Markeropt{:});
+                        hold on
+                    end
+                    %hdl1 = plot(tex,yex,plotopt{:});
+                    hold off
+                    xlim([tstart tend])
+                    xlabel('t',txtopt{:},'Interpreter','latex')
+                    % title('Reference solution',txtopt{:})
+                    legend(lgnd(1:length(y0)+size(E,1)),'location',loc)
+                    set(gca,txtopt{:})
+                    ax = gca;
+                    ax.XScale = xscale;
+                    ax.YScale = yscale;
+                    if exist('yrange','var')
+                        ylim(yrange);
+                    end
+                end
+                if strcmp(task,'plotsave')
+                    print('-depsc2',['./save/' test '_ref.eps'])
+                end
+            end
+        end
+
+
+
+        %%% Computing Num. sol
+        for i = 1:length(solvers)
+            meth = solvers{i};
+
+            try
+                if ~iscell(meth)
+                    str = meth;
+                    fh = str2func(str);
+                    [t,Y] = fh(PD, y0, dt0, tint, dtfunc);
+                else
+                    str = meth{1};
+                    theta = meth{2};
+                    fh = str2func(str);
+                    [t,Y,str,~,~,Gamma_vec] = fh(PD, y0, dt0, tint, theta);
+                end
+
+
+                % Linear invariants
+                if ~isempty(E)
+                    sumY = E*Y;
+                else
+                    sumY = [];
+                end
+                Y = [Y; sumY];
+                if exist('visfac','var')
+                    Y = bsxfun(@times, Y, visfac');
+                end
+                Y = Y / scaleode;
+
+                %%% plotting num. sol
+                Markerint = default;
+                if strcmp(task,'plotsave')
+                    str_plt = str;
+                    str_plt(str_plt=='(') = [];
+                    str_plt(str_plt==')') = [];
+                    str_plt(str_plt==',') = '_';
+                end
+                if ~pde_plot && ~ strcmp(task,'data')
+                    % relative error to exact sol
+                    figure
+                    if exist('exsol', 'var')
+                        if ~isempty(E)
+                            Y(end,:)=[];
+                        end
+                        hdl3 = semilogy(t,abs(Y'-exsol(t'))./abs(exsol(t')),'-',plotopt{:});
+                    else
+                        [t,yyex] = ode15s(f,t,y0,options);
+                        % hdl3 = loglog(t,abs(Y'-yyex)./abs(yyex),'-',plotopt{:});
+                        errs = max(abs(Y-yyex'));
+                        hdl3 = loglog(t,errs,'-',plotopt{:});
+                        hold on
+                        t_a = 0.1*t(end);
+                        [~, idx] = min(abs(t -t_a));
+                        % y_a = min(errs(idx));
+                        y_b = 1.1*max(max(errs));
+                        % y_b = 0.5*(y_a + y_b);
+                        t_line = [t_a, t(end)];
+                        y_line1 = y_b * (t_line ./ t(end)).^1;
+                        y_line2 = y_b * (t_line ./ t(end)).^2;
+                        loglog(t_line, y_line1, 'g--',plotopt{:});
+                        loglog(t_line, y_line2, 'k--',plotopt{:});
+                        lgnd2{2} = '$\mathcal O(t)$';
+                        lgnd2{3} = '$\mathcal O(t^2)$';
+                        hold off
+                        title('Absolute Error',txtopt{:})
+                        xlabel('Time',txtopt{:},'Interpreter','latex')
+                        set(gca,txtopt{:})
+                        l2 = legend(lgnd2,'location','nw');
+                        l2.Visible = 'on';
+                    end
+                    if strcmp(task,'plotsave')
+                        if relaxation_flag
+                            print('-depsc2',['./save/' test '_err_' relax_meth  '_' str_plt '.eps'])
+                        else
+                            print('-depsc2',['./save/' test '_err0_' str_plt '.eps'])
+                        end
+                    end
+
+
+                    figure
+                    idx = 1;
+
+                    %hdl1 = plot(tex,yex,'--',tex,sumyex,'--',plotopt{:});
+                    if strcmp(test,'strat')
+                        plot_strat();
+                    else
+                        hold on
+                        for j=1:size(yex,2)
+                            hdl1 = plot(tex,yex(:,j),Markersref{j},plotopt{:},'MarkerIndices',1:20*Markerint:length(tex), Markeropt{:});
+                        end
+
+
+                        ax = gca;
+                        ax.ColorOrderIndex = 1;
+                        if ~exist('linespec','var')
+                            linespec = 'o-';
+                        end
+                        % hdl2 = plot(t,Y',linespec,plotopt{:});
+                        if contains(str, 'dense')
+                            Markers = smoothMarkers;
+                        else
+                            Markers = defaultMarkers;
+                        end
+
+                        for i=1:size(Y,1)
+                            hdl2 = plot(t,Y(i,:),Markers{i},plotopt{:},'MarkerIndices',1:Markerint:length(t),'Markersize',4);
+                        end
+                        box on
+                        xlim([tstart tend])
+                        xlabel('t',txtopt{:},'Interpreter','latex')
+                    end
+                else
+                    for idx = 1: size(inds,1)
+                        if exist('exsol','var')
+                            lgnd{1}='exact';
+                        else
+                            lgnd{1}='ref';
+                        end
+                        lgnd{2} = 'num';
+                        loc = 'ne';
+                        figure
+
+                        plot(x,yex(end,inds(idx,:)),Markersref{1},plotopt{:},'MarkerIndices',1:20*Markerint:length(x), Markeropt{:})
+                        hold on
+                        plot(x,Y(inds(idx,:),end),Markers{1},plotopt{:},'MarkerIndices',1:Markerint:length(x),'Markersize',4);
+
+                        hold off
+                        xlim([xstart xend])
+                        xlabel('x',txtopt{:},'Interpreter','latex')
+                        if exist('ylabels','var')
+                            ylabel(ylabels{idx},txtopt{:},'Interpreter','latex')
+                        end
+                        save_plot()
+                    end
+                end
+                if idx == 1
+                    save_plot()
+                end
+                if exist('Gamma_vec','var') && ~isempty(Gamma_vec)
+                    figure()
+                    semilogy(t(1:length(Gamma_vec)),Gamma_vec,plotopt{:})
+                    legend({'$\gamma$'})
+                    xlabel('t','Interpreter','latex')
+                    ylim([1e-8 1e8])
+                    set(gca,txtopt{:})
+                    if strcmp(task,'plotsave')
+                        if relaxation_flag
+                            print('-depsc2',['./save/' test '_gamma_' relax_meth '_' str_plt '.eps'])
+                        else
+                            print('-depsc2',['./save/' test '_gamma_0' str_plt '.eps'])
+                        end
+                    end
+                end
+
+                %% plot entropy
+
+                if entropy_flag
+                    figure()
+
+                    if length(y0) == 2
+                        %subplot(1,2,1)
+                        plot(yex(:,1),yex(:,2),'--',plotopt{:},Markeropt{:})
+                        hold on
+                        plot(Y(1,:),Y(2,:),'-',plotopt{:}, Markeropt{:})
+                        xlabel('$u_1$',txtopt{:},'Interpreter','latex')
+                        ylabel('$u_2$',txtopt{:},'Interpreter','latex')
+                        title('Numerical Solution')
+                        legend({'ref','num'},'location',loc)
+                        set(gca,txtopt{:})
+                        xlim([min(min(Y(1,:)),min(yex(:,1))) max(max(Y(1,:)),max(yex(:,1)))])
+                        ylim([min(min(Y(2,:)),min(yex(:,2))) max(max(Y(2,:)),max(yex(:,2)))])
+                        grid on;
+                        if strcmp(task,'plotsave')
+                            if relaxation_flag
+                                print('-depsc2',['./save/' test '_sol_' relax_meth '_' str_plt '.eps'])
+                            else
+                                print('-depsc2',['./save/' test '_sol_0' str_plt '.eps'])
+                            end
+                        end
+                        figure()
+                    end
+
+                    %%% check if eta= @(Y,Para) for plotting
+                    varargin = {input};
+                    getpara();
+                    dummy = 0;
+                    if ~exist('exsol','var')
+                        if ~isOctave
+                            options.AbsTol = 1e-13;
+                            options.RelTol = 1e-13;
+                            [~,~,f] = PD(tstart,y0,input);
+                            options.NonNegative = 1:length(y0);
+                            options.NonNegative = [];
+                            [tex,yex] = ode15s(f,tint,y0,options);
+                            %[tex,yex] = ode23s(f,tint,y0,options);
+                            etaex = eta(yex');
+                            lgnd{2}='ref';
+                        end
+                    else
+                        lgnd{2}='exact';
+                        tex = t;
+                        if pde_plot
+                            etaex = eta((exsol(tex',x))');
+                        else
+                            etaex = eta(exsol(tex'));
+                        end
+                    end
+                    % else
+                    lgnd{1} = 'num';
+
+                    % end
+
+
+                    loc = 'ne';
+                    if strcmp('test','strat')
+                        tex = tex_temp;
+                        t = ttemp;
+                    end
+                    plot(t(1:end-1),eta(Y(:,1:end-1)),plotopt{:});
+                    if ~dummy
+                        hold on
+                        plot(tex(1:end-1),etaex(1:end-1)/scaleode,plotopt{:})
+                        hold off
+                    end
+                    l = legend(lgnd{1:2},'location',loc);
+                    l.Visible = 'on';
+                    xlabel('Time',txtopt{:},'Interpreter','latex')
+                    xlim([0.9*t(1) 1.01*t(end)])
+                    % ylabel('$\eta$',txtopt{:},'Interpreter','latex')
+                    title('Entropy')
+                    set(gca,txtopt{:})
+                    if strcmp(task,'plotsave')
+                        if relaxation_flag
+                            print('-depsc2',['./save/' test '_entropy_' relax_meth '_' str_plt '.eps'])
+                        else
+                            print('-depsc2',['./save/' test '_entropy_0' str_plt '.eps'])
+                        end
+                    end
+                end
+
+                if exist('freq','var')
+                    Markerint = Markerint / (freq +1);
+                else
+                    Markerint = default;
+                end
+
+            catch ME
+                fprintf('\n')
+                fprintf('Method: %s\n',str)
+                warning(ME.message)
+                fprintf('\n')
+            end
+
+        end
+    otherwise
+        error('Task %s is unknown.\n',task)
+end
