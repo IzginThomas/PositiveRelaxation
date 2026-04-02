@@ -63,10 +63,3 @@ The code in this repository is published under the MIT license, see the
 ## Disclaimer
 
 Everything is provided as is and without warranty. Use at your own risk!
-
-
-
-# PositiveRelaxation
-
-
-
