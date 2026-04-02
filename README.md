@@ -26,7 +26,7 @@ use the implementations provided here, please **also** cite this repository as
   author={Izgin, Thomas and Ranocha, Hendrik and Shu, Chi-Wang},
   year={2026},
   howpublished={\url{https://github.com/IzginThomas/PositiveRelaxation}},
-  doi={TODO}
+  doi={10.5281/zenodo.19386973.}
 }
 ```
 
