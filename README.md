@@ -1,7 +1,7 @@
 # A Positivity-Preserving Relaxation Algorithm
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
-[![DOI](https://zenodo.org/badge/DOI/TODO.svg)](https://zenodo.org/records/10.5281/zenodo.19386973)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19386973.svg)](https://zenodo.org/records/19386973)
 
 This repository contains information and code to reproduce the results presented
 in the article
