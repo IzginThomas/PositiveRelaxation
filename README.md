@@ -10,10 +10,10 @@ in the article
       title={A Positivity-Preserving Relaxation Algorithm}, 
       author={Thomas Izgin and Hendrik Ranocha and Chi-Wang Shu},
       year={2026},
-      eprint={TODO},
+      eprint={2604.02308},
       archivePrefix={arXiv},
       primaryClass={math.NA},
-      url={https://arxiv.org/abs/TODO}, 
+      url={https://arxiv.org/abs/2604.02308}, 
 }
 ```
 
